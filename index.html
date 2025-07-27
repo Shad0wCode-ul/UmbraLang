@@ -66,6 +66,7 @@ black("Hallo, " + name + "!")
       <button onclick="runUmbra()">▶️ Ausführen</button>
 
       <div id="consoleOutput"></div>
+      <!-- <canvas id="gameCanvas" width="800" height="600"></canvas> -->
     </section>
     
     <section id="contribute">
@@ -87,32 +88,158 @@ black("Hallo, " + name + "!")
     </div>
   </footer>
   <script>
-function runUmbra() {
-  const input = document.getElementById('umbraInput').value;
-  const output = document.getElementById('consoleOutput');
-  output.innerHTML = ''; // clear
-
-  const lines = input.split('\n');
-
-  lines.forEach(line => {
-    const trimmed = line.trim();
-
-    if (trimmed.startsWith("black(")) {
-      const inner = trimmed.match(/black\("(.*)"\)/);
-      if (inner && inner[1]) {
-        const p = document.createElement("div");
-        p.textContent = inner[1];
-        output.appendChild(p);
-      }
-    } else if (trimmed !== "") {
-      const p = document.createElement("div");
-      p.textContent = `[⚠️ Nicht unterstützt] ${trimmed}`;
-      p.style.color = "#f55";
-      output.appendChild(p);
+// UmbraLang IDE Logik
+class UmbraLangIDE {
+    constructor() {
+        this.editor = document.getElementById('umbraInput'); // z.B. <textarea id="editor">
+        this.consoleOutput = document.getElementById('consoleOutput'); // z.B. <div id="console">
+        this.inputBox = document.getElementById('umbraInput'); // z.B. <input id="inputBox">
+        this.currentScriptPath = '';
+        this.waitingForInputName = null;
+        this.scriptQueue = [];
+        this.variables = {};
+        this.functions = {};
+        this.isWindowLibaryConnected = false;
+        this.isGameLibaryConnected = false;
+        this.isOpendWindow = false;
+        this.isOpendGame = false;
+        this.playerX = 100;
+        this.playerY = 100;
+        this.speed = 5;
+        this.gravitySpeed = 3;
+        this.gameWindow = null;
+        // ... weitere Initialisierung
     }
-  });
 
-  output.scrollTop = output.scrollHeight;
+    writeConsole(text) {
+        this.consoleOutput.innerText += text + '\n';
+    }
+
+    executeCode() {
+        this.functions = {};
+        this.waitingForInputName = null;
+        this.consoleOutput.innerText = '';
+        this.compileScript(this.editor.value, this.currentScriptPath);
+    }
+
+    compileScript(content) {
+        this.scriptQueue = content.split('\n');
+        this.continueScriptExecution(content);
+    }
+
+    continueScriptExecution(content) {
+        while (this.scriptQueue.length > 0) {
+            let line = this.scriptQueue.shift().trim();
+            if (!line || line.startsWith('#')) continue;
+
+            if (line.startsWith('black')) {
+                let output = line.substring(line.indexOf('(') + 1, line.lastIndexOf(')')).trim();
+                // Variablenersetzung: Ersetze Variablennamen im Output durch ihren Wert
+                // Unterstützt black("Hallo " + name + "!")
+                try {
+                    // Erzeuge eine Funktion, die Zugriff auf this.variables hat
+                    let evalOutput = new Function('vars', 'with(vars){ return ' + output + '; }')(this.variables);
+                    this.writeConsole(evalOutput);
+                } catch (e) {
+                    // Fallback: Falls Fehler, gib den rohen Output aus
+                    this.writeConsole(output.replace(/"/g, ''));
+                }
+            }
+            else if (line.startsWith('storeInput')) {
+                let inputName = line.substring(line.indexOf('("') + 2, line.lastIndexOf('"')).trim();
+                this.waitingForInputName = inputName;
+                this.writeConsole(`Warte auf Eingabe für: ${inputName}`);
+                let text = prompt(`Bitte gib einen Wert für ${inputName} ein:`);
+                this.variables[inputName] = text;
+                this.writeConsole(`Eingabe für ${inputName}: ${this.variables[inputName]}`);
+                this.inputBox.focus();
+            } 
+            else if (line.startsWith('white')) {
+                let varName = line.split(' ')[1];
+                let varValue = line.split('=')[1].trim();
+                if (varValue.startsWith('"') && varValue.endsWith('"')) {
+                    varValue = varValue.slice(1, -1); // Entferne Anführungszeichen
+                }
+                this.variables[varName] = varValue;
+            }
+            else if (line.startsWith('code')) {
+                let funcName = line.split(' ')[1];
+                this.functions[funcName] = [];
+            } 
+            else if (line.startsWith('shadow')) {
+                // Implementiere Shadow-Delay
+            }
+            else if (line.startsWith('if')) {
+                // Implementiere If-Bedingungen
+            } 
+            else if (line.startsWith('gameWindow')) {
+                // Implementiere GameWindow Logik
+                if (!this.isGameLibaryConnected) {
+                    this.isGameLibaryConnected = true;
+                    this.gameWindow = new GameWindow('gameCanvas');
+                }
+            } 
+            else if (line.startsWith('setPlayerX')) {
+                let xValue = parseInt(line.split('(')[1]);
+                this.gameWindow.setPlayerX(xValue);
+            } 
+            else if (line.startsWith('setPlayerY')) {
+                let yValue = parseInt(line.split('(')[1]);
+                this.gameWindow.setPlayerY(yValue);
+            }
+            else if (line.startsWith('movePlayer')) {
+                let direction = line.split(' ')[1];
+                if (direction === 'left') {
+                    this.playerX -= this.speed;
+                } else if (direction === 'right') {
+                    this.playerX += this.speed;
+                } else if (direction === 'up') {
+                    this.playerY -= this.speed;
+                } else if (direction === 'down') {
+                    this.playerY += this.speed;
+                }
+                this.gameWindow.draw();
+            }
+            // ... weitere Kommandos wie white, repeat, if, etc.
+        }
+    }
+}
+
+// Beispiel für ein einfaches GameWindow mit Canvas
+class GameWindow {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.playerX = 100;
+        this.playerY = 100;
+        this.draw();
+        // ... weitere Initialisierung
+    }
+
+    setPlayerX(x) {
+        this.playerX = x;
+        this.draw();
+    }
+
+    setPlayerY(y) {
+        this.playerY = y;
+        this.draw();
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Spieler zeichnen
+        this.ctx.fillStyle = 'red';
+        this.ctx.fillRect(this.playerX, this.playerY, 64, 64);
+        // ... weitere Objekte zeichnen
+    }
+}
+
+// Beispiel-Initialisierung
+const ide = new UmbraLangIDE();
+const gameWindow = new GameWindow('gameCanvas');
+function runUmbra() {
+    ide.executeCode();
 }
 </script>
 </body>
