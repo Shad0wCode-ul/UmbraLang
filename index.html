@@ -86,5 +86,34 @@ black("Hallo, " + name + "!")
       <a href="mailto:you@example.com">Kontakt</a>
     </div>
   </footer>
+  <script>
+function runUmbra() {
+  const input = document.getElementById('umbraInput').value;
+  const output = document.getElementById('consoleOutput');
+  output.innerHTML = ''; // clear
+
+  const lines = input.split('\n');
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith("black(")) {
+      const inner = trimmed.match(/black\("(.*)"\)/);
+      if (inner && inner[1]) {
+        const p = document.createElement("div");
+        p.textContent = inner[1];
+        output.appendChild(p);
+      }
+    } else if (trimmed !== "") {
+      const p = document.createElement("div");
+      p.textContent = `[⚠️ Nicht unterstützt] ${trimmed}`;
+      p.style.color = "#f55";
+      output.appendChild(p);
+    }
+  });
+
+  output.scrollTop = output.scrollHeight;
+}
+</script>
 </body>
 </html>
